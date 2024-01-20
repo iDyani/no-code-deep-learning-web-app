@@ -1,0 +1,42 @@
+[flake8]
+# Basic Flake8 configuration
+
+# Paths to exclude from checks
+exclude =
+    __pycache__,
+    .venv,
+    .git,
+    .tox,
+    dist,
+    docs,
+    *lib/python*,
+    *egg,
+    venv
+
+# Code complexity: it's good to keep this value around 10
+max-complexity = 10
+
+# Maximum allowed line length
+max-line-length = 120
+
+# Error and warning codes to ignore
+ignore =
+    E203,  # Whitespace before ':' (conflict with Black)
+    E266,  # Too many leading '#' for block comment
+    E501,  # Line too long (let Black handle line-length)
+    W503,  # Line break before binary operator
+    F403,  # 'from module import *' used; unable to detect undefined names
+    F401,  # Module imported but unused
+
+# Additional Flake8 plugins
+select =
+    B,  # bugbear
+    C,  # mccabe
+    E,  # pycodestyle errors
+    F,  # pyflakes
+    W,  # pycodestyle warnings
+    B950  # bugbear opinionated warnings
+
+# Settings for specific plugins
+[flake8:bugbear]
+B950_line_length = 80
