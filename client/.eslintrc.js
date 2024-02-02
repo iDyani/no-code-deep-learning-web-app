@@ -1,36 +1,36 @@
 module.exports = {
-    env: {
-        browser: true, // Adds browser global variables
-        es2021: true, // Enables ECMAScript 2021 globals and syntax
-        node: true,  // Adds Node.js global variables and Node.js scoping
+  env: {
+    browser: true, // Configuration to enable global variables that are present in browsers
+    es2021: true, // Specifies that the codebase is using ECMAScript 2021 features
+    node: true, // Enables global variables available in Node.js (e.g., process, __dirname)
+  },
+  extends: [
+    'airbnb', // Extends the Airbnb JavaScript Style Guide, including their React best practices
+    'plugin:react/recommended', // Uses the recommended linting rules from eslint-plugin-react for React specific linting
+    'plugin:react-hooks/recommended', // Uses the recommended linting rules for React hooks (e.g., useEffect, useState)
+  ],
+  parserOptions: {
+    ecmaFeatures: {
+      jsx: true, // Enables linting of JSX, a syntax extension for React
     },
-    extends: [
-        'airbnb', // Extends Airbnb style guide rules
-        'plugin:react/recommended', // Use recommended rules from eslint-plugin-react
-        'plugin:react-hooks/recommended', // Use recommended rules for React hooks
-    ],
-    parserOptions: {
-        ecmaFeatures: {
-            jsx: true, // Allows for parsing of JSX
-        },
-        ecmaVersion: 12, // Allows for the parsing of modern ECMAScript features
-        sourceType: 'module', // Allows for the use of imports
+    ecmaVersion: 12, // Specifies the version of ECMAScript syntax to be used
+    sourceType: 'module', // Allows use of ES Modules syntax (e.g., import/export)
+  },
+  plugins: [
+    'react', // Adds eslint-plugin-react to add specific linting rules for React
+    'react-hooks', // Adds eslint-plugin-react-hooks to enforce rules of hooks
+  ],
+  rules: {
+    // Defines custom rules or overrides default rules
+    'react/jsx-filename-extension': [1, { extensions: ['.js', '.jsx'] }], // Allows JSX syntax in files with .js and .jsx extensions. Level 1 means warning
+    'react/react-in-jsx-scope': 'off', // Disables the rule that requires React to be in scope when using JSX
+    'jsx-a11y/anchor-is-valid': 'off', // Turns off the rule that enforces all anchors to be valid, customizable based on needs
+    'no-console': 'warn', // Sets the rule to warn when console statements are used, helping to catch potential debugging code left in production
+    'react/prop-types': 'off', // Disables the enforcement of prop types usage, which can be useful when using TypeScript for type checking instead
+  },
+  settings: {
+    react: {
+      version: 'detect', // Automatically detects the installed React version for linting purposes
     },
-    plugins: [
-        'react', // Enables eslint-plugin-react for React-specific linting rules
-        'react-hooks' // Enables linting rules for React hooks
-    ],
-    rules: {
-        // Custom rules can be defined here
-        'react/jsx-filename-extension': [1, { 'extensions': ['.js', '.jsx'] }], // Allows JSX in .js and .jsx files
-        'react/react-in-jsx-scope': 'off', // Not necessary in React 17+
-        'jsx-a11y/anchor-is-valid': 'off', // Specific anchor validation rules (adjust as needed)
-        'no-console': 'warn', // Warns about console.log usage
-        'react/prop-types': 'off', // Turns off prop-types rule, useful if using TypeScript
-    },
-    settings: {
-        react: {
-            version: 'detect', // Automatically detect the React version
-        },
-    },
+  },
 };

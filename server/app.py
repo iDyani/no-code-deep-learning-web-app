@@ -1,23 +1,33 @@
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning)
 from flask import Flask, request, jsonify, send_file, send_from_directory
 from flask_cors import CORS
-import os
+import os, json
 from werkzeug.utils import secure_filename
 import pandas as pd
-from tensorflow import keras
+# import numpy as np
+# from tensorflow import keras
 from db_config import MongoDBConfig
 from database_utils import MongoDBUtils
 from datetime import datetime
+from label_column_selector import select_label_column
+from sklearn.model_selection import train_test_split
+from data_processing import process_data
+from before_after import data_comparison
 
 app = Flask(__name__, static_folder='../client/build', static_url_path='')
 CORS(app)
 
 UPLOAD_FOLDER = 'uploaded_files'
+ORIGINAL_DATA_FOLDER = 'original_data'
 ALLOWED_EXTENSIONS = {'csv', 'xlsx', 'xls', 'json', 'txt'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['ORIGINAL_DATA_FOLDER'] = ORIGINAL_DATA_FOLDER
 
-if not os.path.exists(UPLOAD_FOLDER):
-    os.makedirs(UPLOAD_FOLDER)
+for folder in [UPLOAD_FOLDER, ORIGINAL_DATA_FOLDER]:
+    if not os.path.exists(folder):
+        os.makedirs(folder)
 
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -30,33 +40,35 @@ def catch_all(path):
 @app.route('/api/data-summary', methods=['GET'])
 def data_summary():
     try:
-        latest_file_path = get_latest_uploaded_file_path()
-        if not latest_file_path:
+        original_file_path = get_original_uploaded_file_path()
+        if not original_file_path:
             return jsonify({'error': 'No data file uploaded'}), 404
 
-        df = pd.read_csv(latest_file_path)
+        df = pd.read_csv(original_file_path)
         summary = {
             'columns': df.columns.tolist(),
-            'summary': {col: {
-                'data_type': convert_dtype(str(df[col].dtype)),
-                'missing_values': int(df[col].isnull().sum()),
-                'percent_missing': float((df[col].isnull().sum() / len(df)) * 100)
-            } for col in df.columns},
-            'row_count': len(df)
+            'summary': {
+                col: {
+                    'data_type': convert_dtype(str(df[col].dtype)),
+                    'missing_values': int(df[col].isnull().sum()),
+                    'percent_missing': float((df[col].isnull().sum() / len(df)) * 100)
+                } for col in df.columns
+            },
+            'row_count': len(df),
+            'duplicate_count': int(df.duplicated().sum())
         }
-
+        
         return jsonify(summary)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
     
 @app.route('/api/visualization-data', methods=['GET'])
 def visualization_data():
-    print("Visualization request received.")
     try:
         column_name = request.args.get('columnName')
 
         # Fetch the latest uploaded file
-        latest_file_path = get_latest_uploaded_file_path()
+        latest_file_path = get_original_uploaded_file_path()
         if not latest_file_path:
             return jsonify({'error': 'No data file uploaded'}), 404
 
@@ -93,15 +105,33 @@ def convert_dtype(python_dtype):
 
 def get_latest_uploaded_file_path():
     try:
-        files = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) if os.path.isfile(os.path.join(app.config['UPLOAD_FOLDER'], f))]
-        if not files:
+        # Filter out only relevant data files (e.g., CSV files)
+        data_files = [f for f in os.listdir(app.config['UPLOAD_FOLDER']) if f.endswith('.csv') and os.path.isfile(os.path.join(app.config['UPLOAD_FOLDER'], f))]
+        
+        if not data_files:
             return None
-        latest_file = max(files, key=lambda x: os.path.getmtime(os.path.join(app.config['UPLOAD_FOLDER'], x)))
+
+        # Get the latest file based on modification time
+        latest_file = max(data_files, key=lambda x: os.path.getmtime(os.path.join(app.config['UPLOAD_FOLDER'], x)))
         return os.path.join(app.config['UPLOAD_FOLDER'], latest_file)
     except Exception as e:
         print(f"Error getting latest uploaded file: {e}")
         return None
+    
+def get_original_uploaded_file_path():
+    try:
+        # Fetch files from the original data folder
+        data_files = [f for f in os.listdir(app.config['ORIGINAL_DATA_FOLDER']) if f.endswith('.csv') and os.path.isfile(os.path.join(app.config['ORIGINAL_DATA_FOLDER'], f))]
+        
+        if not data_files:
+            return None
 
+        latest_file = max(data_files, key=lambda x: os.path.getmtime(os.path.join(app.config['ORIGINAL_DATA_FOLDER'], x)))
+        return os.path.join(app.config['ORIGINAL_DATA_FOLDER'], latest_file)
+    except Exception as e:
+        print(f"Error getting latest uploaded file: {e}")
+        return None
+    
 @app.route('/api/upload', methods=['POST'])
 def upload_file():
     if 'file' not in request.files:
@@ -117,7 +147,7 @@ def upload_file():
         filename, file_extension = os.path.splitext(file.filename)
         new_filename = f"{filename}_{timestamp}{file_extension}"
         secure_filename(new_filename)
-        file_path = os.path.join(app.config['UPLOAD_FOLDER'], new_filename)
+        file_path = os.path.join(app.config['ORIGINAL_DATA_FOLDER'], new_filename)
 
         file.save(file_path)
         return jsonify({'message': 'File uploaded successfully'}), 200
@@ -127,74 +157,13 @@ def upload_file():
 @app.route('/api/columns', methods=['GET'])
 def get_columns():
     try:
-        file_path = get_latest_uploaded_file_path()
+        file_path = get_original_uploaded_file_path()
         if not file_path:
             return jsonify({'error': 'No data file uploaded'}), 404
 
         df = pd.read_csv(file_path)
         return jsonify(df.columns.tolist())
     except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-MODEL_FOLDER = 'trained_models'
-if not os.path.exists(MODEL_FOLDER):
-    os.makedirs(MODEL_FOLDER)
-
-def train_model(data_path, model_params):
-    try:
-        # Load the dataset
-        df = pd.read_csv(data_path)
-        target_column = model_params.get('target_column', 'label')  # Default label column
-        features = df.drop(target_column, axis=1)
-        labels = df[target_column]
-
-        # Splitting data into training and testing (simple split for demonstration)
-        train_features = features.sample(frac=0.8, random_state=42)
-        test_features = features.drop(train_features.index)
-        train_labels = labels.sample(frac=0.8, random_state=42)
-        test_labels = labels.drop(train_labels.index)
-
-        # Building a simple model for demonstration
-        model = keras.Sequential([
-            keras.layers.Dense(10, activation='relu', input_shape=(train_features.shape[1],)),
-            keras.layers.Dense(1, activation='sigmoid')
-        ])
-        
-        model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-
-        # Training the model
-        model.fit(train_features, train_labels, epochs=10, batch_size=32)  # Example settings
-
-        # Evaluate the model (optional)
-        loss, accuracy = model.evaluate(test_features, test_labels)
-        print(f"Model accuracy: {accuracy}")
-
-        # Save the trained model
-        model_save_path = os.path.join(MODEL_FOLDER, 'model.h5')
-        model.save(model_save_path)
-
-        return model_save_path, accuracy
-
-    except Exception as e:
-        raise RuntimeError(f"Error in model training: {str(e)}")
-
-@app.route('/api/train', methods=['POST'])
-def train():
-    data = request.json
-    filename = data.get('filename')
-    model_params = data.get('model_params', {})  # Model parameters such as target column
-
-    if not filename:
-        return jsonify({'error': 'Filename is required'}), 400
-
-    file_path = os.path.join(UPLOAD_FOLDER, filename)
-    if not os.path.exists(file_path):
-        return jsonify({'error': 'File not found'}), 404
-
-    try:
-        model_file, accuracy = train_model(file_path, model_params)
-        return jsonify({'message': 'Model trained successfully', 'model_file': model_file, 'accuracy': accuracy})
-    except RuntimeError as e:
         return jsonify({'error': str(e)}), 500
 
 # Initialize and connect to MongoDB
@@ -204,7 +173,28 @@ db_config.connect()
 # Use MongoDBUtils for database operations
 db_utils = MongoDBUtils(db_config.db)
 
-# Assuming you have routes that use db_utils for database operations
+@app.route('/api/drop-columns', methods=['POST'])
+def drop_columns():
+    try:
+        data = request.get_json()
+        columns_to_drop = data['columns']
+
+        # Load the dataset
+        dataset_path = get_original_uploaded_file_path()
+        if not os.path.exists(dataset_path):
+            return jsonify({"error": "Dataset file not found"}), 404
+
+        df = pd.read_csv(dataset_path)
+
+        # Drop the specified columns
+        df.drop(columns=columns_to_drop, inplace=True, errors='ignore')
+
+        # Save the updated dataset
+        df.to_csv(os.path.join(ORIGINAL_DATA_FOLDER, 'post_column_drop_data.csv'), index=False)
+
+        return jsonify({"message": "Columns dropped successfully"}), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # Add logic to disconnect from MongoDB when the application shuts down
 @app.teardown_appcontext
@@ -220,7 +210,84 @@ def get_latest_data():
         return jsonify({'error': 'No files uploaded'}), 404
     except Exception as e:
         return jsonify({'error': str(e)}), 500
-   
+
+@app.route('/api/select-label-column', methods=['POST'])
+def select_label():
+    data = request.json
+    file_path = get_original_uploaded_file_path()
+    label_column = data.get('labelColumn')
+
+    if not label_column:
+        return jsonify({'error': 'Label column name is required'}), 400
+
+    result, status_code = select_label_column(ORIGINAL_DATA_FOLDER, file_path, label_column)
+    return jsonify(result), status_code
+
+@app.route('/api/split-data', methods=['POST'])
+def split_data():
+    try:
+        data = request.json
+        train_size = float(data.get('trainSize', 0.6))
+        validation_size = float(data.get('validationSize', 0.2))
+
+        # Validation to ensure the sum of train_size and validation_size does not exceed 1
+        if train_size + validation_size > 1.0:
+            return jsonify({'error': 'Sum of training size and validation size should not exceed 1'}), 400
+
+        original_file_path = get_original_uploaded_file_path()
+        if not original_file_path:
+            return jsonify({'error': 'No data file uploaded'}), 404
+
+        original_df = pd.read_csv(original_file_path)
+        test_size = float(max(0, 1 - train_size - validation_size))
+
+        # Splitting logic
+        train_df, test_df = train_test_split(original_df, test_size=test_size, random_state=42)
+        val_size_adjusted = validation_size / (train_size + validation_size)
+        train_df, val_df = train_test_split(train_df, test_size=val_size_adjusted, random_state=42)
+
+        train_df.to_csv(os.path.join(UPLOAD_FOLDER, 'train.csv'), index=False)
+        val_df.to_csv(os.path.join(UPLOAD_FOLDER, 'val.csv'), index=False)
+        test_df.to_csv(os.path.join(UPLOAD_FOLDER, 'test.csv'), index=False)
+
+        return jsonify({
+            'message': 'Data split successfully',
+            'train_size': len(train_df),
+            'validation_size': len(val_df),
+            'test_size': len(test_df),
+            'total_size': len(original_df)
+        })
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+    
+@app.route('/api/process_data', methods=['POST'])
+def process_data_route():
+    options = request.json
+
+    # Check if options are empty
+    if not any(options.values()):
+        return jsonify({"message": "No processing required"}), 200
+
+    # Existing processing logic
+    process_data(UPLOAD_FOLDER, ORIGINAL_DATA_FOLDER, options)
+    return jsonify({"message": "Data processed successfully"}), 200
+
+@app.route('/api/data-comparison-summary', methods=['GET'])
+def data_comparison_summary():
+    try:
+        original_file = get_original_uploaded_file_path()
+        if not original_file:
+            return jsonify({'error': 'Original file not found'}), 404
+
+        metrics = data_comparison(UPLOAD_FOLDER, original_file)
+        if not metrics:
+            return jsonify({'error': 'Error calculating metrics'}), 500
+                
+        return jsonify({'before': metrics['before'], 'after': metrics['after']})    
+    except Exception as e:
+        print({'error': 'Exception occurred: ' + str(e)})
+        return jsonify({'error': 'Exception occurred: ' + str(e)}), 500
+
 if __name__ == '__main__':
     if not os.path.exists(app.config['UPLOAD_FOLDER']):
         os.makedirs(app.config['UPLOAD_FOLDER'])  # Create upload folder if it doesn't exist

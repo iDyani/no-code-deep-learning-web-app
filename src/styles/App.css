@@ -25,14 +25,14 @@ body {
 }
 
 /* Component Styling */
-.DataUpload, .DataVisualization, .DataSummary, .Preprocessing {
+.DataUpload, .DataVisualization, .DataSummary, .DataProcessing, .data-splitter, .label-column-selector, .drop-columns-container {
     margin: 20px auto;
     padding: 20px;
     border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
     background-color: white;
     width: 80%;
-    max-width: 600px;
+    max-width: 800px;
 }
 
 .section-title {
@@ -91,7 +91,7 @@ label {
 }
 
 /* Loading and Messages */
-.loading, .message {
+.loading {
     color: #007bff;
     font-style: italic;
 }
@@ -104,7 +104,7 @@ label {
 
 /* Responsive Design */
 @media (max-width: 768px) {
-    .DataUpload, .DataVisualization, .DataSummary, .Preprocessing {
+    .DataUpload, .DataVisualization, .DataSummary, .DataCleaning, .data-splitter, .label-column-selector {
         width: 90%;
     }
 }
@@ -114,32 +114,42 @@ footer {
     text-align: center;
 }
 
-.summary-table {
+.summary-table, .metrics-table {
     width: 100%;
     border-collapse: collapse;
     margin-bottom: 20px;
 }
 
-.summary-table th, .summary-table td {
-    border: 1px solid #ddd;
-    padding: 8px;
-    text-align: left;
+#val_set {
+    padding-top: 15px;
 }
 
-.summary-table th {
+#column_selector {
+    text-align: center;
+}
+
+.summary-table th, .summary-table td, .metrics-table th, .metrics-table td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+}
+
+.summary-table th, .metrics-table th{
     background-color: #f2f2f2;
     color: #333;
 }
 
-.summary-table tr:nth-child(even) {background-color: #f9f9f9;}
+.summary-table tr:nth-child(even), .metrics-table tr:nth-child(even) {
+    background-color: #f9f9f9;
+}
 
-.summary-table select {
+.summary-table select, .metrics-table select {
     padding: 4px;
     border-radius: 4px;
     border: 1px solid #ccc;
 }
 
-.summary-table td {
+.summary-table td, .metrics-table td {
     vertical-align: middle;
     text-align: center;
 }
@@ -200,3 +210,291 @@ footer {
     font-size: 14px;
 }
 
+.label-column-selector select {
+    padding: 10px;
+    margin-right: 10px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+
+.label-column-selector button {
+    padding: 10px 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.label-column-selector button:hover {
+    background-color: #0056b3;
+}
+
+.label-column-selector .error {
+    color: red;
+    margin-top: 10px;
+}
+
+.data-splitter input {
+    margin-left: 10px;
+    padding: 5px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+
+.data-splitter button {
+    margin-top: 10px;
+    padding: 10px 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.data-splitter button:hover {
+    background-color: #0056b3;
+}
+
+.data-splitter .error {
+    color: red;
+    margin-top: 10px;
+}
+
+input {
+    text-align: center;
+}
+
+.DataProcessing {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    width: 100%;
+  }
+
+.data-processing-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.data-processing-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+.data-cleaning-info {
+    margin-bottom: 20px;
+}
+
+.form-section {
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    width: 100%;
+}
+
+.form-section-title {
+    margin-bottom: 10px;
+    font-size: 1.1em;
+    color: #333;
+  }
+
+.form-section h3 {
+    margin-bottom: 10px;
+    font-size: 18px;
+    color: #333;
+}
+
+.form-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+label {
+    cursor: pointer;
+    display: block;
+    position: relative;
+    padding-top: 6px;
+  }
+
+.submit-button {
+    margin-top: 10px;
+    padding: 10px 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.submit-button:hover, .collapsible-header:hover {
+    background-color: #0056b3;
+}
+
+.collapsible {
+    margin-bottom: 20px;
+    border-radius: 4px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+    background-color: #f9f9f9;
+    overflow: hidden;
+    width: 100%;
+}
+
+.collapsible-header {
+    padding: 10px 15px;
+    background-color: #007bff;
+    color: white;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.collapsible-title {
+    margin-left: 10px;
+    font-weight: bold;    
+    text-align: left;
+}
+
+.arrow {
+    transition: transform 0.3s ease;
+    font-size: 1.2em;
+}
+
+.arrow.open {
+    transform: rotate(90deg);
+}
+
+.collapsible-content {
+    padding: 15px;
+    border-top: 1px solid #ddd;
+    background-color: white;
+    color: #333;
+    line-height: 1.6;
+    font-size: 14px;
+    text-align: left;
+}
+
+.metrics-table-container {
+    margin: 20px;
+    padding: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    font-size: 14px;
+}
+
+.comparison-section {
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-start;
+}
+
+.drop-columns-container h2 {
+    margin-bottom: 15px;
+    color: #333;
+}
+
+.drop-columns-container button {
+    margin-top: 10px;
+    padding: 8px 15px;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.drop-columns-container button:hover {
+    background-color: #0056b3;
+}
+
+.drop-status-message, .message {
+    margin-top: 15px;
+    padding: 10px;
+    background-color: #e0e0e0;
+    border-radius: 4px;
+    color: #333;
+}
+
+.checkbox-list {
+    display: flex;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+    padding: 20px;
+    justify-content: center;
+  }
+  
+  /* Individual checkbox item */
+  .checkbox-item {
+    display: flex;
+    align-items: center;
+    justify-content: start;
+  }
+  
+  /* Custom checkbox design */
+  .custom-checkbox {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border: 2px solid #007bff;
+    border-radius: 4px;
+    margin-right: 10px;
+    cursor: pointer;
+    position: relative;
+  }
+  
+  .custom-checkbox:checked::after {
+    content: '';
+    position: absolute;
+    left: 5px;
+    top: px;
+    width: 5px;
+    height: 11px;
+    border: solid #333;
+    border-width: 0 3px 3px 0;
+    transform: rotate(45deg);
+  }
+
+  .checkbox-label {
+    font-size: 16px;
+    color: #333;
+  }
+
+  .drop-status-message b i, .message b i{
+    font-weight: bold;
+    font-style: italic;
+  }
+  
+  /* Styles for the disabled state */
+.drop-columns-container.disabled .checkbox-item {
+    opacity: 0.5;
+    pointer-events: none;
+  }
+  
+  .drop-columns-container.disabled .checkbox-label {
+    color: #ccc;
+  }
+  
+  .drop-columns-container.disabled .submit-button,
+  .drop-columns-container.disabled .skip-button {
+    background-color: #ccc;
+    color: #666;
+    pointer-events: none;
+    cursor: default;
+  }
+  

@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { getSummaryData } from './api';
-import '../styles/App.css';
 
 function DataSummary({ dataUploaded }) {
     const [summaryData, setSummaryData] = useState(null);
@@ -37,15 +36,7 @@ function DataSummary({ dataUploaded }) {
         return Object.entries(summaryData.summary).map(([column, details]) => (
             <tr key={column}>
                 <td>{column}</td>
-                <td>
-                    <select defaultValue={details.data_type || "unknown"}>
-                        <option value="string">String</option>
-                        <option value="number">Number</option>
-                        <option value="boolean">Boolean</option>
-                        <option value="date">Date</option>
-                        <option value="unknown">Unknown</option>
-                    </select>
-                </td>
+                <td>{details.data_type}</td>
                 <td>{details.missing_values}</td>
                 <td>{(details.percent_missing || 0).toFixed(2)}%</td>
             </tr>
@@ -76,8 +67,9 @@ function DataSummary({ dataUploaded }) {
                     </table>
                     {summaryData && (
                         <ul className="data-stats">
-                            <li><strong>Number of Rows:</strong> {summaryData.row_count}</li>
                             <li><strong>Number of Columns:</strong> {summaryData.columns.length}</li>
+                            <li><strong>Number of Rows:</strong> {summaryData.row_count}</li>                            
+                            <li><strong>Duplicate Rows:</strong> {summaryData.duplicate_count}</li>
                         </ul>
                     )}
                 </>

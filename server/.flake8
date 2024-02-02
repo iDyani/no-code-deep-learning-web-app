@@ -1,42 +1,41 @@
 [flake8]
-# Basic Flake8 configuration
-
-# Paths to exclude from checks
+# Exclude directories not relevant to our linting process.
 exclude =
-    __pycache__,
-    .venv,
-    .git,
-    .tox,
-    dist,
-    docs,
-    *lib/python*,
-    *egg,
-    venv
+    __pycache__,  # Ignore cached files.
+    .venv,        # Ignore virtual environment setup.
+    .git,         # Ignore version control system files.
+    .tox,         # Ignore Tox test environment configurations.
+    dist,         # Ignore distribution build files.
+    docs,         # Ignore documentation files.
+    *lib/python*, # Ignore Python standard library files.
+    *egg,         # Ignore Python egg package files.
+    venv          # Ignore another common virtual environment setup.
 
-# Code complexity: it's good to keep this value around 10
+# Limit the Cyclomatic complexity to maintain code simplicity and readability.
 max-complexity = 10
 
-# Maximum allowed line length
+# Extend line length for better code readability and compatibility with modern displays.
 max-line-length = 120
 
-# Error and warning codes to ignore
+# Ignore specific rules that either conflict with our chosen formatting tool (Black)
+# or do not align with our project's coding standards.
 ignore =
-    E203,  # Whitespace before ':' (conflict with Black)
-    E266,  # Too many leading '#' for block comment
-    E501,  # Line too long (let Black handle line-length)
-    W503,  # Line break before binary operator
-    F403,  # 'from module import *' used; unable to detect undefined names
-    F401,  # Module imported but unused
+    E203,  # Ignore whitespace before ':' conflict with Black.
+    E266,  # Ignore too many leading '#' for block comments.
+    E501,  # Managed by Black for line length; ignore here.
+    W503,  # Ignore line break before binary operator, following newer PEP 8 recommendations.
+    F403,  # Allow 'from module import *' in certain cases.
+    F401,  # Allow unused imports in __init__.py files for public API definition.
 
-# Additional Flake8 plugins
+# Specify which plugin checks to include, aiming for comprehensive code quality checks.
 select =
-    B,  # bugbear
-    C,  # mccabe
-    E,  # pycodestyle errors
-    F,  # pyflakes
-    W,  # pycodestyle warnings
-    B950  # bugbear opinionated warnings
+    B,    # Enable Bugbear for catching probable bugs and design issues.
+    C,    # Enable McCabe for assessing code complexity.
+    E,    # Enable Pycodestyle errors for enforcing Python style conventions.
+    F,    # Enable Pyflakes for logical errors detection.
+    W,    # Enable Pycodestyle warnings for stylistic issues.
+    B950  # Enable Bugbear's opinionated warnings with some leeway on line length.
 
-# Settings for specific plugins
+# Bugbear plugin configuration to enforce stricter line length in certain contexts.
 [flake8:bugbear]
 B950_line_length = 80
