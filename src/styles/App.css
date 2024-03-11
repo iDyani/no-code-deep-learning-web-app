@@ -25,7 +25,7 @@ body {
 }
 
 /* Component Styling */
-.DataUpload, .DataVisualization, .DataSummary, .DataProcessing, .data-splitter, .label-column-selector, .drop-columns-container {
+.DataUpload, .DataVisualization, .DataSummary, .DataProcessing, .data-splitter, .label-column-selector, .drop-columns-container, .model-builder-container, .model-training-container {
     margin: 20px auto;
     padding: 20px;
     border-radius: 8px;
@@ -35,14 +35,6 @@ body {
     max-width: 800px;
 }
 
-.section-title {
-    font-size: 20px;
-    margin-bottom: 15px;
-    color: #333;
-    font-weight: bold;
-}
-
-/* Drag and Drop Upload */
 .drag-drop-area {
     border: 2px dashed #007bff;
     padding: 20px;
@@ -441,7 +433,7 @@ label {
   .checkbox-item {
     display: flex;
     align-items: center;
-    justify-content: start;
+    justify-content: flex-start;
   }
   
   /* Custom checkbox design */
@@ -497,4 +489,29 @@ label {
     pointer-events: none;
     cursor: default;
   }
+
+  .checkbox-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px; /* Spacing between checkboxes */
+    margin-top: 20px;
+  }
   
+  .checkbox-item {
+    flex-basis: calc(33.33% - 10px); /* Adjust the percentage based on desired number of columns */
+    display: flex;
+    align-items: center;
+  }
+  
+  .custom-checkbox + .checkbox-label {
+    margin-left: 8px; /* Spacing between checkbox and label */
+  }
+  
+  .submit-button, .skip-button {
+    margin-top: 20px; /* Spacing above the buttons */
+    margin-right: 10px; /* Spacing between buttons */
+  }
+  
+  .drop-status-message {
+    margin-top: 20px;
+  }

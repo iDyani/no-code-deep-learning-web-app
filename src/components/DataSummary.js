@@ -1,37 +1,40 @@
 import React, { useState, useEffect } from 'react';
-import { getSummaryData } from './api';
+import { getSummaryData } from './api'; // API call to get data summary
 
 function DataSummary({ dataUploaded }) {
-    const [summaryData, setSummaryData] = useState(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState('');
+    const [summaryData, setSummaryData] = useState(null); // State for storing summary data
+    const [isLoading, setIsLoading] = useState(false); // State to track loading status
+    const [error, setError] = useState(''); // State for storing any errors
 
     useEffect(() => {
         if (!dataUploaded) {
+            // Clear data and error states if no data is uploaded
             setSummaryData(null);
             setError('');
             return;
         }
 
         const fetchData = async () => {
+            // Fetch data summary asynchronously
             setIsLoading(true);
             setError('');
             try {
-                const data = await getSummaryData();
-                setSummaryData(data);
+                const data = await getSummaryData(); // API call to fetch summary data
+                setSummaryData(data); // Set fetched data to state
             } catch (error) {
                 console.error('Error fetching data summary:', error);
-                setError('Error fetching data summary');
+                setError('Error fetching data summary'); // Handle errors
             } finally {
-                setIsLoading(false);
+                setIsLoading(false); // Ensure loading state is reset
             }
         };
 
-        fetchData();
-    }, [dataUploaded]);
+        fetchData(); // Trigger data fetching
+    }, [dataUploaded]); // Effect runs when `dataUploaded` changes
 
     const renderTableBody = () => {
-        if (!summaryData || !summaryData.summary) return null;
+        // Render table rows for each column summary in the data
+        if (!summaryData || !summaryData.summary) return null; // Return null if no summary data
 
         return Object.entries(summaryData.summary).map(([column, details]) => (
             <tr key={column}>
@@ -47,12 +50,16 @@ function DataSummary({ dataUploaded }) {
         <div className="DataSummary">
             <h2>Data Summary</h2>
             {!dataUploaded ? (
+                // Prompt user to upload data if not already done
                 <p>Please upload a data file to view the summary.</p>
             ) : isLoading ? (
+                // Display loading message while fetching data
                 <p>Loading data summary...</p>
             ) : error ? (
+                // Show error message if error occurred during fetch
                 <p>{error}</p>
             ) : (
+                // Render data summary table and statistics if data is available
                 <>
                     <table className="summary-table">
                         <thead>
@@ -68,7 +75,7 @@ function DataSummary({ dataUploaded }) {
                     {summaryData && (
                         <ul className="data-stats">
                             <li><strong>Number of Columns:</strong> {summaryData.columns.length}</li>
-                            <li><strong>Number of Rows:</strong> {summaryData.row_count}</li>                            
+                            <li><strong>Number of Rows:</strong> {summaryData.row_count}</li>
                             <li><strong>Duplicate Rows:</strong> {summaryData.duplicate_count}</li>
                         </ul>
                     )}

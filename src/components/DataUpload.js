@@ -1,64 +1,72 @@
 import React, { useState, useRef } from 'react';
-import { uploadData } from './api';
+import { uploadData } from './api'; // Function to call the API for uploading data
 import '../styles/App.css';
 
 function DataUpload({ setDataUploaded }) {
-    const [file, setFile] = useState(null);
-    const [uploading, setUploading] = useState(false);
-    const [progress, setProgress] = useState(0);
-    const [message, setMessage] = useState('');
-    const fileInputRef = useRef(null);
+    const [file, setFile] = useState(null); // State to store the selected file
+    const [uploading, setUploading] = useState(false); // State to indicate if the file is being uploaded
+    const [progress, setProgress] = useState(0); // State to track upload progress
+    const [message, setMessage] = useState(''); // State to store messages to the user
+    const fileInputRef = useRef(null); // Reference to the hidden file input element
 
     const handleDrop = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const droppedFile = e.dataTransfer.files[0];
+        // Handle file drop
+        e.preventDefault(); // Prevent default browser behavior
+        e.stopPropagation(); // Stop the event from propagating further
+        const droppedFile = e.dataTransfer.files[0]; // Get the dropped file
         if (droppedFile && droppedFile.name.endsWith('.csv')) {
-            setFile(droppedFile);
-            setMessage(`File selected: ${droppedFile.name}`);
+            // Check if the file is a CSV
+            setFile(droppedFile); // Set the file state
+            setMessage(`File selected: ${droppedFile.name}`); // Set the message state
         } else {
-            setMessage('Only CSV files are accepted');
+            setMessage('Only CSV files are accepted'); // Inform the user about acceptable file type
         }
     };
 
     const handleFileChange = (e) => {
-        const selectedFile = e.target.files[0];
+        // Handle file selection via the file input
+        const selectedFile = e.target.files[0]; // Get the selected file
         if (selectedFile && selectedFile.name.endsWith('.csv')) {
-            setFile(selectedFile);
-            setMessage(`File selected: ${selectedFile.name}`);
+            // Check if the file is a CSV
+            setFile(selectedFile); // Set the file state
+            setMessage(`File selected: ${selectedFile.name}`); // Set the message state
         } else {
-            setMessage('Only CSV files are accepted');
+            setMessage('Only CSV files are accepted'); // Inform the user about acceptable file type
         }
     };
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
+        // Handle file upload on form submission
+        e.preventDefault(); // Prevent form submission
         if (!file) {
-            setMessage('Please select a file to upload');
+            // Check if a file has been selected
+            setMessage('Please select a file to upload'); // Inform the user to select a file
             return;
         }
         try {
-            setUploading(true);
-            setMessage('');
+            setUploading(true); // Set uploading state to true
+            setMessage(''); // Clear message state
             await uploadData(file, (event) => {
-                setProgress(Math.round((100 * event.loaded) / event.total));
+                // Call the API to upload the file
+                setProgress(Math.round((100 * event.loaded) / event.total)); // Update progress state
             });
-            setMessage('File uploaded successfully');
-            setDataUploaded(true); // Notify the App component that data is uploaded
+            setMessage('File uploaded successfully'); // Inform the user of successful upload
+            setDataUploaded(true); // Notify the parent component that data has been uploaded
         } catch (error) {
-            setMessage(`Error uploading file: ${error.message}`);
+            setMessage(`Error uploading file: ${error.message}`); // Display upload error message
         } finally {
-            setUploading(false);
+            setUploading(false); // Set uploading state to false
         }
     };
 
     const openFileDialog = () => {
-        fileInputRef.current.click();
+        // Open the file dialog
+        fileInputRef.current.click(); // Trigger click on the hidden file input
     }
 
     return (
         <div className="DataUpload">
-            <h2 className="section-title">Data Upload</h2>
+            <h2>Data Upload</h2>
             <div className="drag-drop-area" data-testid="dropzone"
                  onDrop={handleDrop} 
                  onDragOver={(e) => e.preventDefault()}
@@ -73,7 +81,7 @@ function DataUpload({ setDataUploaded }) {
             {file && <p className="file-info">{message}</p>}
             {uploading && <progress value={progress} max="100">{progress}%</progress>}
             {message && !file && <p className="message">{message}</p>}
-            <button onClick={handleSubmit} disabled={uploading || !file}>Upload</button>
+            <button className='upload_button' onClick={handleSubmit} disabled={uploading || !file}>Upload</button>
         </div>
     );
 }

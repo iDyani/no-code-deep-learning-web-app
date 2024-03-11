@@ -4,7 +4,6 @@ import { Chart, registerables } from 'chart.js';
 import { getVisualizationData, getColumns } from './api';
 import '../styles/App.css';
 
-// Register the required chart.js components
 Chart.register(...registerables);
 
 function generateRandomColor() {
@@ -71,7 +70,7 @@ function DataVisualization({ dataUploaded }) {
 
     const renderCustomLegend = () => {
         return (
-            <div className="chart-legend">
+            <div className="chart-legend" data-testid="chart">
                 {Object.entries(colorMapping).map(([label, color]) => (
                     <div key={label} className="legend-item">
                         <span className="legend-color" style={{ backgroundColor: color }}></span>
@@ -84,7 +83,7 @@ function DataVisualization({ dataUploaded }) {
 
     return (
         <div className="DataVisualization">
-            <h2 className="section-title">Data Visualization</h2>
+            <h2>Data Visualization</h2>
             {!dataUploaded ? (
                 <p>Please upload a data file to visualize.</p>
             ) : error ? (

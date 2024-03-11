@@ -1,13 +1,16 @@
+// Import statements for React, API utility to perform data split, and a collapsible UI component
 import React, { useState } from 'react';
-import { splitData } from './api'; 
-import Collapsible from './Collapsible';
+import { splitData } from './api'; // API call for splitting data
+import Collapsible from './Collapsible'; // Reusable collapsible component for displaying information
 
 function DataSplitter() {
-    const [trainSize, setTrainSize] = useState(60);
-    const [validationSize, setValidationSize] = useState(20);
-    const [dataSizes, setDataSizes] = useState(null);
-    const [error, setError] = useState('');
+    // State hooks for controlling input values and displaying results or errors
+    const [trainSize, setTrainSize] = useState(60); // Initial state for training data ratio
+    const [validationSize, setValidationSize] = useState(20); // Initial state for validation data ratio
+    const [dataSizes, setDataSizes] = useState(null); // To store response from API about dataset sizes
+    const [error, setError] = useState(''); // For displaying error messages
 
+    // Validates user input to ensure it is numeric and sums up to 100% or less
     const validateInput = () => {
         if (isNaN(parseFloat(trainSize) / 100) || isNaN(parseFloat(validationSize) / 100)) {
             setError('Input values must be numeric.');
@@ -20,15 +23,17 @@ function DataSplitter() {
         return true;
     };
 
+    // Handles the event when user clicks 'Split Data' button
     const handleSplitData = async () => {
         if (validateInput()) {
             try {
+                // Calls the API with user-defined ratios and updates the state with the response
                 const response = await splitData(parseFloat(trainSize) / 100, parseFloat(validationSize) / 100);
-                setDataSizes(response);
-                setError('');
+                setDataSizes(response); // Updates state with dataset sizes
+                setError(''); // Clears any previous error messages
             } catch (err) {
-                setError(err.message);
-                setDataSizes(null);
+                setError(err.message); // Sets error message if API call fails
+                setDataSizes(null); // Resets dataset sizes
             }
         }            
     };

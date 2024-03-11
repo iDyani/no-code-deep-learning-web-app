@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getColumns, selectLabelColumn } from './api';
+import { getColumnsForLabel, selectLabelColumn } from './api';
 import Collapsible from './Collapsible';
 
 function LabelColumnSelector({ onDataLabelSelected }) {
@@ -16,7 +16,7 @@ function LabelColumnSelector({ onDataLabelSelected }) {
     const fetchColumns = async () => {
         try {
             setLoading(true);
-            const cols = await getColumns();
+            const cols = await getColumnsForLabel();
             setColumns(cols);
             setLoading(false);
         } catch (err) {
@@ -49,7 +49,7 @@ function LabelColumnSelector({ onDataLabelSelected }) {
                 <p>Loading...</p>
             ) : (
                 <>
-                    <select id='column_selector'
+                    <select id='column_selector' aria-label="Select column"
                         value={selectedColumn} 
                         onChange={(e) => setSelectedColumn(e.target.value)}
                     >

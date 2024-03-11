@@ -1,4 +1,5 @@
 import React from 'react';
+import '@testing-library/jest-dom';
 import { fireEvent, render, waitFor, screen } from '@testing-library/react';
 import DataVisualization from '../DataVisualization';
 import { getVisualizationData, getColumns } from '../api';

@@ -5,17 +5,39 @@ from sklearn.impute import SimpleImputer
 import json
 import torch.nn.functional as F
 import torch
+import numpy as np
 
-# Global variables to store imputer
+# Global variable to store the imputer for handling missing values
 mode_imputer = None
 
 def read_csv_files(upload_folder):
+    """
+    Reads the training, validation, and testing data from CSV files.
+
+    Parameters:
+    - upload_folder: The directory where the CSV files are stored.
+
+    Returns:
+    - train_df: DataFrame containing the training data.
+    - val_df: DataFrame containing the validation data.
+    - test_df: DataFrame containing the testing data.
+    """
     train_df = pd.read_csv(f'{upload_folder}/train.csv')
     val_df = pd.read_csv(f'{upload_folder}/val.csv')
     test_df = pd.read_csv(f'{upload_folder}/test.csv')
     return train_df, val_df, test_df
 
 def drop_duplicates(options, upload_folder):
+    """
+    Optionally removes duplicates from the combined dataset.
+
+    Parameters:
+    - options: Dictionary of options indicating whether duplicates should be removed.
+    - upload_folder: Directory where the CSV files are located.
+
+    Returns:
+    - DataFrames of train, validation, and test datasets with duplicates removed if specified.
+    """
     train_df, val_df, test_df = read_csv_files(upload_folder)
     
     if options['removeDuplicates']:
@@ -33,6 +55,17 @@ def drop_duplicates(options, upload_folder):
         return train_df, val_df, test_df
 
 def clean_data(df, options, fit_imputer=False):
+    """
+    Cleans the given DataFrame based on the specified options, such as handling missing values.
+
+    Parameters:
+    - df: DataFrame to be cleaned.
+    - options: Dictionary of processing options.
+    - fit_imputer: Boolean indicating whether the imputer should be fitted.
+
+    Returns:
+    - The cleaned DataFrame.
+    """
     global mode_imputer
         
     if options['handleMissingValues']:
@@ -46,43 +79,74 @@ def clean_data(df, options, fit_imputer=False):
     return df
 
 def process_features(train_df, val_df, test_df, options, datatypes, label_column):
+    """
+    Processes features of the dataframes such as encoding categorical variables and feature scaling.
+
+    Parameters:
+    - train_df, val_df, test_df: DataFrames containing training, validation, and testing data.
+    - options: Dictionary of processing options.
+    - datatypes: Dictionary mapping column names to their data types.
+    - label_column: The name of the label column which should not be encoded or scaled.
+
+    Returns:
+    - Processed training, validation, and testing DataFrames.
+    """
     # Combine datasets for consistent processing
     combined_df = pd.concat([train_df, val_df, test_df])
 
     # Process categorical and ordinal columns
     if options['encodeCategorical']:        
         for col in [column for column, data_type in datatypes.items() if data_type in ['object', 'category'] and column != label_column]:
-            # Create a mapping from categories to integers
             unique_values = combined_df[col].unique()
             mapping = {k: v for v, k in enumerate(unique_values)}
             
-            # Apply the mapping
             train_df[col] = train_df[col].map(mapping)
             val_df[col] = val_df[col].map(mapping)
             test_df[col] = test_df[col].map(mapping)
     
-    # Initialize scaler to None
-    scaler = None
+    scaler = None  # Initialize scaler to None
 
-    # Process numerical columns
+    # Identify numerical columns for scaling
     num_cols = [column for column, data_type in datatypes.items() if data_type in ['int64', 'float64'] and column != label_column]
     
+    # Choose scaler based on options
     if options['featureScaling'] == 'standardization':
         scaler = StandardScaler()
     elif options['featureScaling'] == 'normalization':
         scaler = MinMaxScaler()
     
     if scaler:
-        # Fit on training data
-        train_df[num_cols] = scaler.fit_transform(train_df[num_cols])
-
-        # Transform validation and test data
-        val_df[num_cols] = scaler.transform(val_df[num_cols])
-        test_df[num_cols] = scaler.transform(test_df[num_cols])
+        train_df = scaler.fit_transform(train_df)  # Fit and transform training data
+        val_df = scaler.transform(val_df)  # Transform validation data
+        test_df = scaler.transform(test_df)  # Transform test data
 
     return train_df, val_df, test_df
 
+def one_hot_encoding(tensor, num_classes):
+    """
+    Creates a one-hot encoded matrix for a given tensor and number of classes.
+    
+    Parameters:
+    - tensor: A PyTorch tensor representing labels.
+    - num_classes: The total number of classes.
+    
+    Returns:
+    - A one-hot encoded matrix as a NumPy array.
+    """
+    one_hot = np.zeros((tensor.size(0), num_classes), dtype=np.float64)
+    one_hot[np.arange(tensor.size(0)), tensor.numpy()] = 1
+    return one_hot
+
 def process_label_column(y_train, y_val, y_test):
+    """
+    Encodes the label columns of training, validation, and test datasets into one-hot format.
+    
+    Parameters:
+    - y_train, y_val, y_test: Label columns for training, validation, and test datasets.
+    
+    Returns:
+    - Encoded label columns for training, validation, and test datasets.
+    """
     # Combine the labels into a single series to ensure consistent encoding
     combined_labels = pd.concat([y_train, y_val, y_test], axis=0).reset_index(drop=True)
     
@@ -112,19 +176,28 @@ def process_label_column(y_train, y_val, y_test):
     
     return encoded_y_train, encoded_y_val, encoded_y_test
 
-def process_data(upload_folder, original_data_folder, options):
+def process_data(upload_folder, options):
+    """
+    Main function to process data according to the specified options.
+    
+    Parameters:
+    - upload_folder: Directory where the data files are stored.
+    - options: Dictionary specifying processing options such as duplicate removal and missing value handling.
+    
+    The function performs operations like dropping duplicates, cleaning data (e.g., imputing missing values), and processing features. It also processes label columns and saves the processed data.
+    """
     train_df, val_df, test_df = drop_duplicates(options, upload_folder)
     
-    label_info_path = [f for f in os.listdir(original_data_folder) if f.endswith('_selected_columns.json')]
-    latest_file = max(label_info_path, key=lambda x: os.path.getmtime(os.path.join(original_data_folder, x)))
-    json_file = os.path.join(original_data_folder, latest_file)
+    label_info_path = [f for f in os.listdir(upload_folder) if f.endswith('_selected_columns.json')]
+    latest_file = max(label_info_path, key=lambda x: os.path.getmtime(os.path.join(upload_folder, x)))
+    json_file = os.path.join(upload_folder, latest_file)
     
     with open(json_file, 'r') as file:
         label_column = json.load(file)['label_column']
 
-    datatype_path = [f for f in os.listdir(original_data_folder) if f.endswith('column_data_types.json')]
-    json_datatype_file = max(datatype_path, key=lambda x: os.path.getmtime(os.path.join(original_data_folder, x)))
-    datatype_file = os.path.join(original_data_folder, json_datatype_file)
+    datatype_path = [f for f in os.listdir(upload_folder) if f.endswith('column_data_types.json')]
+    json_datatype_file = max(datatype_path, key=lambda x: os.path.getmtime(os.path.join(upload_folder, x)))
+    datatype_file = os.path.join(upload_folder, json_datatype_file)
     with open(datatype_file, 'r') as file:
         datatypes = json.load(file)      
     
@@ -133,17 +206,22 @@ def process_data(upload_folder, original_data_folder, options):
     val_df = clean_data(val_df, options)    
     test_df = clean_data(test_df, options)
 
-    # # Drop rows where the label column is NaN
-    # train_df.dropna(subset=[label_column], inplace=True)
-    # val_df.dropna(subset=[label_column], inplace=True)
-    # test_df.dropna(subset=[label_column], inplace=True)  
-
     # Separate label columns
     y_train = train_df.pop(label_column)
     y_val = val_df.pop(label_column)
     y_test = test_df.pop(label_column)
 
     train_df, val_df, test_df = process_features(train_df, val_df, test_df, options, datatypes, label_column)
+
+    # store variables for neural network's input_size parameter and number of nodes for last layer
+    combined_df = pd.concat([train_df, val_df, test_df])
+    num_columns = len(combined_df.columns)
+
+    combined_labels = pd.concat([y_train, y_val, y_test], axis=0).reset_index(drop=True)
+    num_classes = len(combined_labels.unique())
+
+    with open(os.path.join(upload_folder, 'network_parameters.json'), 'w') as json_file:
+            json.dump({"num_cols": num_columns, "num_label_classes": num_classes}, json_file)
 
     # Process label columns
     processed_y_train, processed_y_val, processed_y_test = process_label_column(y_train, y_val, y_test)

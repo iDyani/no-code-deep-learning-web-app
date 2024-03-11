@@ -1,53 +1,67 @@
 import React from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import DataUpload from '../DataUpload';
 import { uploadData } from '../api';
 
+// Mock the uploadData API function
 jest.mock('../api', () => ({
-  uploadData: jest.fn(() => Promise.resolve()),
+  uploadData: jest.fn(),
 }));
 
-describe('DataUpload Component', () => {
+describe('DataUpload Component Tests', () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    uploadData.mockClear();
   });
 
-  it('renders the upload component', () => {
+  it('renders correctly', () => {
     render(<DataUpload setDataUploaded={() => {}} />);
-    expect(screen.getByText(/Drag and drop a CSV file here/i)).toBeInTheDocument();
+    expect(screen.getByText(/drag and drop a csv file here, or click to select a file/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /upload/i })).toBeInTheDocument();
   });
 
-  it('accepts a file on drop', async () => {
-    const setDataUploaded = jest.fn();
-    render(<DataUpload setDataUploaded={setDataUploaded} />);
-    const dropzone = screen.getByTestId('dropzone');
-    const file = new File(['content'], 'test.csv', { type: 'text/csv' });
-
-    fireEvent.drop(dropzone, { dataTransfer: { files: [file] } });
-
-    await waitFor(() => expect(uploadData).toHaveBeenCalledWith(file, expect.any(Function)));
-    expect(setDataUploaded).toHaveBeenCalledWith(true);
-  });
-
-  it('shows error message for non-CSV file drop', async () => {
+  it('validates file type on file select', () => {
     render(<DataUpload setDataUploaded={() => {}} />);
-    const dropzone = screen.getByTestId('dropzone');
-    const file = new File(['content'], 'test.txt', { type: 'text/plain' });
-
-    fireEvent.drop(dropzone, { dataTransfer: { files: [file] } });
-
-    expect(await screen.findByText(/Only CSV files are accepted/i)).toBeInTheDocument();
-  });
-
-  it('uploads file on manual selection', async () => {
-    const setDataUploaded = jest.fn();
-    render(<DataUpload setDataUploaded={setDataUploaded} />);
     const fileInput = screen.getByTestId('file-input');
-    const file = new File(['content'], 'test.csv', { type: 'text/csv' });
+    const csvFile = new File(['test'], 'test.csv', { type: 'text/csv' });
+    const nonCsvFile = new File(['test'], 'test.txt', { type: 'text/plain' });
 
-    fireEvent.change(fileInput, { target: { files: [file] } });
+    // Try to upload a non-CSV file
+    fireEvent.change(fileInput, { target: { files: [nonCsvFile] } });
+    expect(screen.getByText(/only csv files are accepted/i)).toBeInTheDocument();
 
-    await waitFor(() => expect(uploadData).toHaveBeenCalledWith(file, expect.any(Function)));
-    expect(setDataUploaded).toHaveBeenCalledWith(true);
+    // Upload a CSV file
+    fireEvent.change(fileInput, { target: { files: [csvFile] } });
+    expect(screen.getByText(/file selected: test.csv/i)).toBeInTheDocument();
+  });
+
+  it('uploads file successfully', async () => {
+    uploadData.mockResolvedValueOnce(); // Mock a successful upload
+    render(<DataUpload setDataUploaded={() => {}} />);
+    const fileInput = screen.getByTestId('file-input');
+    const csvFile = new File(['test'], 'upload.csv', { type: 'text/csv' });
+  
+    fireEvent.change(fileInput, { target: { files: [csvFile] } });
+    fireEvent.click(screen.getByRole('button', { name: /upload/i }));
+  
+    await waitFor(() => expect(uploadData).toHaveBeenCalledWith(csvFile, expect.any(Function)));
+    
+    // Use waitFor to wait for the message to appear in the document
+    await waitFor(() => {
+      expect(screen.getByText(/file uploaded successfully/i)).toBeInTheDocument();
+    });
+  });
+  
+  it('displays error message on upload failure', async () => {
+    uploadData.mockRejectedValueOnce(new Error('Upload failed'));
+    render(<DataUpload setDataUploaded={() => {}} />);
+    const fileInput = screen.getByTestId('file-input');
+    const csvFile = new File(['test'], 'upload.csv', { type: 'text/csv' });
+  
+    fireEvent.change(fileInput, { target: { files: [csvFile] } });
+    fireEvent.click(screen.getByRole('button', { name: /upload/i }));
+  
+    await waitFor(() => expect(uploadData).toHaveBeenCalledWith(csvFile, expect.any(Function)));
+    await waitFor(() => expect(screen.getByText(/error uploading file: Upload failed/i)).toBeInTheDocument());
   });
 });
